@@ -22,13 +22,13 @@ def generate_dataset(args):
     score_ = np.zeros((5,5,10))
     l_idx = 0
     
-    for l1 in np.linspace(l_min,l_max,1):
+    for l1 in np.linspace(l_min,l_max,5):
         f_idx = 0
-        for f1 in np.linspace(f_min,f_max,1):
+        for f1 in np.linspace(f_min,f_max,5):
             i_idx=0
-            for i in range(I,I+10,1):
+            for i in np.linspace(I,I+900,10):
                 #i in range(1000):
-                pusht = inference_pusht(i*100,m1,f1,l1)
+                pusht = inference_pusht(int(i),m1,f1,l1)
                 obs0 = pusht.init_obs
                 obs_list.append(obs0)
                 score = pusht.generate_dist().detach()
@@ -37,7 +37,7 @@ def generate_dataset(args):
                 mass_list.append(m1)
                 length_list.append(l1)
                 friction_list.append(f1)
-                print(i,obs0)
+                print(i)
                 i_idx+=1
             f_idx+=1
         l_idx+=1

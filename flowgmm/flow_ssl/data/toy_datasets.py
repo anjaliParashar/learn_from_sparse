@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn import datasets
 from PIL import Image
-
+import pickle
 
 def make_circles_ssl():
     np.random.seed(0)
@@ -61,6 +61,14 @@ def make_dataset_from_img(img_path):
 def make_dataset_from_npz(npz_path):
     f = np.load(npz_path)
     data = f["data"].astype(np.float32)
-    labels = f["labels"].astype(np.int)
+    labels = f["labels"].astype(int)
     return data, labels
  
+def make_dataset_from_pkl(pkl_path):
+    file_i = open(pkl_path, 'rb')
+    # dump information to that file
+    f = pickle.load(file_i)
+    file_i.close()
+    data = f['data'].astype(np.float32)
+    labels=f['labels'].astype(int)
+    return data,labels

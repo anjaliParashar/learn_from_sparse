@@ -4,17 +4,13 @@ import torch
 import pickle
 import matplotlib.pyplot as plt
 # open a file, where you stored the pickled data
-file_0 = open('/home/anjali/learn_to_fail/push_T/verify_manipulation/pusht_train_0.pkl', 'rb')
-file_1 = open('/home/anjali/learn_to_fail/push_T/verify_manipulation/pusht_train_1.pkl', 'rb')
-
+file_0 = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/pusht_train_2.pkl', 'rb')
 # dump information to that file
 data_0 = pickle.load(file_0)
 file_0.close()
-data_1 = pickle.load(file_1)
-file_1.close()
-score_0 = data_0['score']#[-1]
-score_1 = data_1['score']#[-1]
-score_np = np.concatenate((score_0,score_1),axis=2)
+
+score_np = data_0['score']#[-1]
+print(score_np.shape)
 length = np.linspace(4,10,5)
 friction = np.linspace(0.1,1,5)
 
