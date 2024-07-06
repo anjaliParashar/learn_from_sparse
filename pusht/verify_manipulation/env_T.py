@@ -234,15 +234,16 @@ class PushTEnv(gym.Env):
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 10}
     reward_range = (0., 1.)
 
-    def __init__(self, mass,friction,length,
+    def __init__(self,x0,y0, mass,friction,length,
             legacy=False,
             block_cog=None, damping=None,
             render_action=True,
             render_size=96,
             reset_to_state=None,
         ):
-        self._seed = None
-        self.seed()
+        self.x0 = x0
+        self.y0 = y0
+        self.seed(self.x0,self.y0)
         self.window_size = ws = 512  # The size of the PyGame window
         self.render_size = render_size
         self.sim_hz = 100
@@ -293,7 +294,8 @@ class PushTEnv(gym.Env):
         self.length=length
 
     def reset(self):
-        seed = self._seed
+        x0 = self.x0
+        y0 = self.y0
         self._setup()
         if self.block_cog is not None:
             self.block.center_of_gravity = self.block_cog
@@ -303,11 +305,10 @@ class PushTEnv(gym.Env):
         # use legacy RandomState for compatiblity
         state = self.reset_to_state
         if state is None:
-            rs = np.random.RandomState(seed=seed)
             state = np.array([
-                rs.randint(50, 450), rs.randint(50, 450),
-                rs.randint(100, 400), rs.randint(100, 400),
-                rs.randn() * 2 * np.pi - np.pi
+                x0, y0,
+                350, 300,
+                0.1 * 2 * np.pi - np.pi
                 ])
         self._set_state(state)
 
@@ -443,11 +444,10 @@ class PushTEnv(gym.Env):
             pygame.display.quit()
             pygame.quit()
 
-    def seed(self, seed=None):
-        if seed is None:
-            seed = np.random.randint(0,25536)
-        self._seed = seed
-        self.np_random = np.random.default_rng(seed)
+    def seed(self, x0,y0):
+        self.x0 = x0
+        self.y0 = y0
+        
 
     def _handle_collision(self, arbiter, space, data):
         self.n_contact_points += len(arbiter.contact_point_set.points)
