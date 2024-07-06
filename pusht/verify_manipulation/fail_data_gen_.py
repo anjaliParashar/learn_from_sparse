@@ -8,8 +8,8 @@ import matplotlib.colors as mcolors
 
 score_list = []
 seed_list = []
-for i in range(2):
-    file_i = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/pusht_train_'+str(i)+'.pkl', 'rb')
+for i in range(9):
+    file_i = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/pusht_train_'+str(i+1)+'100.pkl', 'rb')
     # dump information to that file
     data_i = pickle.load(file_i)
     file_i.close()
@@ -39,16 +39,18 @@ for i in range(score_np.shape[2]):
         seed3.append(seed_list[i])
     label_list.append(label)
 print('label-0:',len(seed1),'label-1:',len(seed2),'label-2:',len(seed3))
-
 #Unlabeled data
-file_un = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/pusht_train_2.pkl', 'rb')
+file_un = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/pusht_train_11000.pkl', 'rb')
 data_un = pickle.load(file_un)
 file_un.close()
 label_un = [-1]*10
 
 #Pack data into a pickle file
 label_list += label_un
-seed_list = np.linspace(0,290,30)
+print(len(label_list))
+seed_list = list(np.linspace(1100,10000,90))+list(np.linspace(11000,11900,10))
+print(len(seed_list),seed_list[-2],seed_list[-3])
+seed_list = np.array(seed_list)
 label_list = np.array(label_list)
 data = {'labels':label_list,'data':seed_list}
 filename='data/pusht_fail_dist.pkl'
@@ -63,4 +65,6 @@ def visualize_dist():
     plt.plot(seed2,'o',label='Label-1')
     plt.plot(seed3,'o',label='Label-2')
     plt.legend()
+    plt.savefig('data_visualize.png')
     plt.show()
+visualize_dist()

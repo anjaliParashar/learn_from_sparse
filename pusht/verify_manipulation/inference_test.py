@@ -75,7 +75,7 @@ noise_pred_net = ConditionalUnet1D(
     input_dim=action_dim,
     global_cond_dim=obs_dim*obs_horizon
 )
-noise_pred_net.load_state_dict(torch.load('models/push_T_diffusion_model'))
+noise_pred_net.load_state_dict(torch.load('/home/anjali/push_T_diffusion_model'))
 
 noise_pred_net = noise_pred_net.cuda()
 
@@ -108,9 +108,9 @@ def unnormalize_data(ndata, stats):
 
 # limit enviornment interaction to 200 steps before termination
 max_steps = 200
-env = PushTEnv(mass=1,friction=0.1,length=10)
+env = PushTEnv(x0=100,y0=100,mass=1,friction=1,length=6)
 # use a seed >200 to avoid initial states seen in the training dataset
-env.seed(0)
+env.seed(x0=100,y0=100)
 
 # get first observation
 obs = env.reset()
@@ -126,7 +126,8 @@ step_idx = 0
 alpha = 0.1
 
 #def cost_grad(nmean):
-
+seed=42
+torch.manual_seed(seed=seed)
 with tqdm(total=max_steps, desc="Eval PushTStateEnv") as pbar:
     while not done:
         B = 1

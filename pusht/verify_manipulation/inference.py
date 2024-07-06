@@ -32,7 +32,7 @@ import copy
 import sys
 
 class inference_pusht():
-    def __init__(self,seed_num, mass_in, friction_in, length_in):
+    def __init__(self,x0,y0, mass_in, friction_in, length_in):
         self.device = torch.device('cuda')
 
         # parameters
@@ -88,7 +88,9 @@ class inference_pusht():
         self.friction=friction_in
         self.mass = mass_in
         self.length=length_in
-        self.env,self.obs = self.create_environment(seed_num)
+        self.x0 = x0
+        self.y0 = y0
+        self.env,self.obs = self.create_environment(self.x0,self.y0)
         self.init_obs = self.obs.copy()
     
     def create_dataset(self,dataset_path):
@@ -124,16 +126,18 @@ class inference_pusht():
         data = ndata * (stats['max'] - stats['min']) + stats['min']
         return data
     
-    def create_environment(self,seed_num):
-        env = PushTEnv(mass=self.mass,friction=self.friction,length=self.length)
+    def create_environment(self,x0,y0):
+        env = PushTEnv(x0=self.x0,y0=self.y0,mass=self.mass,friction=self.friction,length=self.length)
         # use a seed >200 to avoid initial states seen in the training dataset
-        env.seed(seed_num)
+        env.seed(x0,y0)
         # get first observation
         obs = env.reset()
         print('initial state',obs)
         return env, obs
 
     def generate_dist(self):
+        seed=42
+        torch.manual_seed(seed=seed)
         # keep a queue of last 2 steps of observations
         obs_deque = collections.deque(
             [self.obs] * self.obs_horizon, maxlen=self.obs_horizon)

@@ -25,7 +25,7 @@ for ax, i in zip(axs.flat,range(10)):
     cbar = fig.colorbar(cs)
 fig.supxlabel('Friction Coefficient',fontsize=15)
 fig.supylabel('Length',fontsize=15)
-plt.show()
+plt.savefig('data_visualize.png')
 
 for i in range(10):
     var_mu = np.cov(score_np[0,:,i]) #reference length value=4
