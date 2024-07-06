@@ -108,7 +108,7 @@ class inference_pusht():
             input_dim=self.action_dim,
             global_cond_dim=self.obs_dim*self.obs_horizon
         )
-        noise_pred_net.load_state_dict(torch.load('/home/anjali/push_T_diffusion_model'))
+        noise_pred_net.load_state_dict(torch.load('/home/anjalip/push_T/verify_manipulation/models/push_T_diffusion_model'))
         noise_pred_net = noise_pred_net.cuda()
         return noise_pred_net
 
