@@ -30,6 +30,30 @@ from data_gen import PushTStateDataset
 from network import ConditionalUnet1D
 import copy
 import sys
+import ipdb
+
+# def noise_pred_net():       
+#     # Standard ADAM optimizer
+#     # Note that EMA parametesr are not optimized
+#     noise_pred_net = ConditionalUnet1D(
+#         input_dim=2,
+#         global_cond_dim=5*2
+#     )
+#     noise_pred_net.load_state_dict(torch.load('/home/anjali/push_T_diffusion_model'))
+#     noise_pred_net = noise_pred_net.cuda()
+#     # in1 = torch.randn((1, 16, 2)).to('cuda')
+#     # in2 = torch.ones((1,)).to('cuda')
+#     # in3 = torch.zeros(((1,2*5))).to('cuda')
+#     # return torch.jit.trace(noise_pred_net, (in1, in2, in3))
+#     return noise_pred_net
+
+# def traced_noise_pred_net():
+#     in1 = torch.randn((0, 16, 2))
+#     in2 = torch.ones((1,))
+#     in3 = torch.zeros(((1,2*5)))
+#     return torch.jit.trace(noise_pred_net, (in1, in2, in3))
+
+# def main():
 
 class inference_pusht():
     def __init__(self,x0,y0, mass_in, friction_in, length_in):
@@ -64,10 +88,10 @@ class inference_pusht():
         )
 
         #create noise prediction network
-        self.noise_pred_net = self.noise_pred_net()
+        # self.noise_pred_net = noise_pred_net()
 
         #optimizer
-        self.optimizer = torch.optim.AdamW(params=self.noise_pred_net.parameters(),lr=1e-4, weight_decay=1e-6)
+        # self.optimizer = torch.optim.AdamW(params=self.noise_pred_net.parameters(),lr=1e-4, weight_decay=1e-6)
 
         self.num_diffusion_iters = 100  
 
@@ -92,7 +116,15 @@ class inference_pusht():
         self.y0 = y0
         self.env,self.obs = self.create_environment(self.x0,self.y0)
         self.init_obs = self.obs.copy()
-    
+
+        # noise_pred_net = ConditionalUnet1D(
+        #     input_dim=2,
+        #     global_cond_dim=5*2
+        # )
+        # noise_pred_net.load_state_dict(torch.load('/home/anjali/push_T_diffusion_model'))
+        # noise_pred_net = noise_pred_net.cuda()
+        # self.noise_pred_net = noise_pred_net
+
     def create_dataset(self,dataset_path):
         # create dataset from file
         dataset = PushTStateDataset(
@@ -103,16 +135,7 @@ class inference_pusht():
         )
         return dataset
     
-    def noise_pred_net(self):       
-        # Standard ADAM optimizer
-        # Note that EMA parametesr are not optimized
-        noise_pred_net = ConditionalUnet1D(
-            input_dim=self.action_dim,
-            global_cond_dim=self.obs_dim*self.obs_horizon
-        )
-        noise_pred_net.load_state_dict(torch.load('/home/anjalip/push_T/verify_manipulation/models/push_T_diffusion_model'))
-        noise_pred_net = noise_pred_net.cuda()
-        return noise_pred_net
+    
 
     def normalize_data(self,data, stats):
         # nomalize to [0,1]
@@ -135,7 +158,7 @@ class inference_pusht():
         print('initial state',obs)
         return env, obs
 
-    def generate_dist(self):
+    def generate_dist(self,noise_pred_net, noisy_action=None):
         seed=42
         torch.manual_seed(seed=seed)
         # keep a queue of last 2 steps of observations
@@ -165,20 +188,37 @@ class inference_pusht():
                     obs_cond = nobs.unsqueeze(0).flatten(start_dim=1)
 
                     # initialize action from Guassian noise
-                    noisy_action = torch.randn(
-                        (B, self.pred_horizon, self.action_dim), device=self.device)
+                    if noisy_action is None:
+                        noisy_action = torch.randn(
+                            (B, self.pred_horizon, self.action_dim), device=self.device)
                     naction = noisy_action
+                    # print(noisy_action)
 
                     # init scheduler
                     self.noise_scheduler.set_timesteps(self.num_diffusion_iters)
 
                     for k in self.noise_scheduler.timesteps:
+                        # breakpoint()
                         # predict noise
-                        noise_pred = self.noise_pred_net(
+                        # t.tic()
+                        noise_pred = noise_pred_net(
                             sample=naction,
                             timestep=k,
                             global_cond=obs_cond
                         )
+                        # noise_pred = self.noise_pred_net()(
+                        #     naction,
+                        #     k,
+                        #     obs_cond
+                        # )
+
+                        # print(t.tocvalue())
+
+                        # noise_pred = traced_noise_pred_net(
+                        #     sample=naction,
+                        #     timestep=k,
+                        #     global_cond=obs_cond
+                        # )
 
                         # inverse diffusion step (remove noise)
                         naction = self.noise_scheduler.step(
@@ -245,3 +285,13 @@ class inference_pusht():
         Score= max(rewards)
         return Score
 
+#     obs_list =[]
+#     pusht = inference_pusht(1,1,1,1,4)
+#     obs0 = pusht.init_obs
+#     obs_list.append(obs0)
+#     #print(obs0,i,j)
+#     score = pusht.generate_dist().detach()
+
+# if __name__ == "__main__":
+#     with ipdb.launch_ipdb_on_exception():
+#         main()
