@@ -29,7 +29,8 @@ for i in jnp.linspace(0,1,5):
 ax.legend()
 ax.set_xlabel('input')
 ax.set_ylabel('output')
-plt.legend(('Data predictions', 'ODE Net predictions'))
+plt.legend(('Data', 'ODE Net predictions'))
+plt.show()
 plt.savefig('data.png')
 
 data = {'y':y_list}

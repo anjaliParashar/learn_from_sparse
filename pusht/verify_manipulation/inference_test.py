@@ -108,7 +108,7 @@ def unnormalize_data(ndata, stats):
 
 # limit enviornment interaction to 200 steps before termination
 max_steps = 200
-env = PushTEnv(x0=100,y0=100,mass=1,friction=1,length=6)
+env = PushTEnv(x0=500,y0=100,mass=0.1,friction=1,length=4)
 # use a seed >200 to avoid initial states seen in the training dataset
 env.seed(x0=100,y0=100)
 
@@ -228,5 +228,5 @@ print('Score: ', max(rewards))
 
 # visualize
 from IPython.display import Video
-vwrite('vis_1_01_5.mp4', imgs)
-Video('vis__1_01_5.mp4', embed=True, width=1024*4, height=1024*4)
+vwrite('vis_1_01_5.gif', imgs)
+#Video('vis__1_01_5.mp4', embed=True, width=1024*4, height=1024*4)
