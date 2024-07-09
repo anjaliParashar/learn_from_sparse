@@ -31,9 +31,6 @@ from network import ConditionalUnet1D
 import copy
 import sys
 import ipdb
-from pytictoc import TicToc
-
-t= TicToc()
 
 # def noise_pred_net():       
 #     # Standard ADAM optimizer
