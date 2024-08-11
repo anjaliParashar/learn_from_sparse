@@ -316,7 +316,7 @@ class PushTEnv(gym.Env):
         observation = self._get_obs()
         return observation
 
-    def step(self, action, noise_1, noise_2):
+    def step(self, action, noise_1=None, noise_2=None):
         dt = 1.0 / self.sim_hz
         self.n_contact_points = 0
         n_steps = self.sim_hz // self.control_hz
@@ -328,13 +328,13 @@ class PushTEnv(gym.Env):
                 
                 acceleration = self.k_p * (action - self.agent.position) + self.k_v * (Vec2d(0, 0) - self.agent.velocity)
                 self.agent.velocity += acceleration * dt 
-                self.agent.velocity += Vec2d(float(2*noise_1[0]),float(2*noise_1[1]))
+                #self.agent.velocity += Vec2d(float(2*noise_1[0]),float(2*noise_1[1]))
                 # Step physics.
                 self.space.step(dt)
 
         # compute reward
         #noise_2 = MultivariateNormal(torch.zeros(2), torch.eye(2)).sample()
-        self.block.position = self.block.position + Vec2d(0.7*float(noise_2[0]),0.7*float(noise_2[1]))
+        #self.block.position = self.block.position + Vec2d(0.7*float(noise_2[0]),0.7*float(noise_2[1]))
         goal_body = self._get_goal_pose_body(self.goal_pose)
         goal_geom = pymunk_to_shapely(goal_body, self.block.shapes)
         block_geom = pymunk_to_shapely(self.block, self.block.shapes)

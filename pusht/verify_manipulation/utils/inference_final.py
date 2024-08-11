@@ -205,7 +205,7 @@ def generate_dist(x0,y0,seed,sigma_1,sigma_2):
             noise_2 = MultivariateNormal(torch.zeros(2), sigma_2*torch.eye(2)).sample()
             for i in range(len(action)):
                 # stepping env
-                obs, reward, done, info = env.step(action[i],noise_1, noise_2)
+                obs, reward, done, info = env.step(action[i])#,noise_1, noise_2)
                 # save observations
                 info = env._get_info()
                 shape = info['block_pose']
@@ -233,6 +233,131 @@ def generate_dist(x0,y0,seed,sigma_1,sigma_2):
     print('Score: ', max(rewards),"Time:",end_time-start_time)
     score = max(rewards)
     return score
+
+def get_trajectory(x0,y0,seed=None):
+    # limit enviornment interaction to 200 steps before termination
+    max_steps = 200
+    env = PushTEnv(x0=x0,y0=y0,mass=1,friction=1,length=4)
+    #env.seed(x0=220,y0=380)
+
+    # get first observation
+    obs = env.reset()
+    print(obs)
+    # keep a queue of last 2 steps of observations
+    obs_deque = collections.deque(
+        [obs] * obs_horizon, maxlen=obs_horizon)
+    # save visualization and rewards
+    imgs = [env.render(mode='rgb_array')]
+    rewards = list()
+    rewards_maintain = list()
+    done = False
+    step_idx = 0
+    i_idx=0
+    #def cost_grad(nmean):
+    if seed is None:
+        seed=10000 #Fix the seed
+    else:
+        seed=seed
+    torch.manual_seed(seed=seed)
+    noisy_action = torch.randn(
+                    (1, pred_horizon, action_dim), device=device)
+    
+    noisy_action = noisy_action_list[0]
+    start_time=time.time()
+    obs_list = []
+    with tqdm(total=max_steps, desc="Eval PushTStateEnv") as pbar:
+        while not done:
+            B = 1
+            # stack the last obs_horizon (2) number of observations
+            obs_seq = np.stack(obs_deque)
+            #print(obs_deque,obs_seq)
+            # normalize observation
+            nobs = normalize_data(obs_seq, stats=stats['obs'])
+            # device transfer
+            nobs = torch.from_numpy(nobs).to(device, dtype=torch.float32)
+
+            # infer action
+            with torch.no_grad():
+                # reshape observation to (B,obs_horizon*obs_dim)
+                obs_cond = nobs.unsqueeze(0).flatten(start_dim=1)
+
+                # initialize action from Guassian noise
+                noisy_action = torch.randn(
+                    (noisy_action.shape[0], pred_horizon, action_dim), device=device)
+                #print(noisy_action[0,1,0])
+                #noisy_action = noisy_action_list[i_idx]
+                naction = noisy_action
+
+                # init scheduler
+                noise_scheduler.set_timesteps(num_diffusion_iters)
+
+                for k in noise_scheduler.timesteps:
+                    # predict noise
+
+                    noise_pred = ema_noise_pred_net(
+                        sample=naction,
+                        timestep=k,
+                        global_cond=obs_cond
+                    )
+
+                    # inverse diffusion step (remove noise)
+                    naction = noise_scheduler.step(
+                        model_output=noise_pred,
+                        timestep=k,
+                        sample=naction
+                    ).prev_sample
+                    
+                    if rewards==[]:
+                        reward = torch.tensor(0)
+                    else:
+                        reward = rewards.pop()
+                
+            # unnormalize action
+            naction = naction.detach().to('cpu').numpy()
+            # (B, pred_horizon, action_dim)
+            naction = naction[0]
+            action_pred = unnormalize_data(naction, stats=stats['action'])
+
+            # only take action_horizon number of actions
+            start = obs_horizon - 1
+            end = start + action_horizon
+            action = action_pred[start:end,:]
+            # (action_horizon, action_dim)
+
+            # execute action_horizon number of steps without replanning
+            for i in range(len(action)):
+                # stepping env
+                obs, reward, done, info = env.step(action[i])
+                obs_list.append(normalize_data(obs,stats=stats['obs']))
+                # save observations
+                info = env._get_info()
+                shape = info['block_pose']
+                
+                obs_deque.append(obs)
+                # and reward/vis
+                rewards.append(reward)
+                rewards_maintain.append(reward.detach().cpu())
+                #print('reward',reward)
+
+                imgs.append(env.render(mode='rgb_array'))
+
+                # update progress bar
+                step_idx += 1
+                #print(step_idx)
+                pbar.update(1)
+                pbar.set_postfix(reward=reward)
+                if step_idx > max_steps:
+                    done = True
+                if done:
+                    break
+            i_idx+=1
+
+    # print out the maximum target coverage
+    end_time=time.time()
+    print('Score: ', max(rewards),"Time:",end_time-start_time)
+    score = max(rewards)
+    return score,obs_list, rewards_maintain
+
 
 def generate_dist_multiple(x0,y0,l,n_seeds):
     max_steps = 200
