@@ -205,12 +205,12 @@ def generate_dist(x0,y0,seed,sigma_1,sigma_2):
             noise_2 = MultivariateNormal(torch.zeros(2), sigma_2*torch.eye(2)).sample()
             for i in range(len(action)):
                 # stepping env
-                obs, reward, done, info = env.step(action[i])#,noise_1, noise_2)
+                obs, reward, done, obs_noise = env.step_noise(action[i],noise_1, noise_2)
                 # save observations
                 info = env._get_info()
                 shape = info['block_pose']
                 
-                obs_deque.append(obs)
+                obs_deque.append(obs_noise)
                 # and reward/vis
                 rewards.append(reward)
                 #print('reward',reward)
@@ -222,6 +222,8 @@ def generate_dist(x0,y0,seed,sigma_1,sigma_2):
                 #print(step_idx)
                 pbar.update(1)
                 pbar.set_postfix(reward=reward)
+                if reward>=0.9:
+                    done=True
                 if step_idx > max_steps:
                     done = True
                 if done:
@@ -262,7 +264,7 @@ def get_trajectory(x0,y0,seed=None):
     noisy_action = torch.randn(
                     (1, pred_horizon, action_dim), device=device)
     
-    noisy_action = noisy_action_list[0]
+    #noisy_action = noisy_action_list[0]
     start_time=time.time()
     obs_list = []
     with tqdm(total=max_steps, desc="Eval PushTStateEnv") as pbar:
@@ -348,6 +350,8 @@ def get_trajectory(x0,y0,seed=None):
                 pbar.set_postfix(reward=reward)
                 if step_idx > max_steps:
                     done = True
+                if reward>0.8:
+                    done=True
                 if done:
                     break
             i_idx+=1

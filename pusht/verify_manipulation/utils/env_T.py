@@ -350,6 +350,45 @@ class PushTEnv(gym.Env):
         info = self._get_info()
 
         return observation, reward, done, info
+    
+    def step_noise(self, action, noise_1=None, noise_2=None):
+        dt = 1.0 / self.sim_hz
+        self.n_contact_points = 0
+        n_steps = self.sim_hz // self.control_hz
+        if action is not None:
+            self.latest_action = action
+            for i in range(n_steps):
+                # Step PD control.
+                # self.agent.velocity = self.k_p * (act - self.agent.position)    # P control works too.
+                
+                acceleration = self.k_p * (action - self.agent.position) + self.k_v * (Vec2d(0, 0) - self.agent.velocity)
+                self.agent.velocity += acceleration * dt 
+                self.agent.velocity += Vec2d(float(2*noise_1[0]),float(2*noise_1[1]))
+                # Step physics.
+                self.space.step(dt)
+
+        # compute reward
+        #noise_2 = MultivariateNormal(torch.zeros(2), torch.eye(2)).sample()
+        #self.block.position = self.block.position + Vec2d(0.7*float(noise_2[0]),0.7*float(noise_2[1]))
+        self.block_noise.position = self.block.position + Vec2d(0.7*float(noise_2[0]),0.7*float(noise_2[1]))
+        
+        #Calculate the reward using noisy data, not the actual states
+        goal_body = self._get_goal_pose_body(self.goal_pose)
+        goal_geom = pymunk_to_shapely(goal_body, self.block_noise.shapes)
+        block_geom = pymunk_to_shapely(self.block_noise, self.block_noise.shapes)
+
+        intersection_area = goal_geom.intersection(block_geom).area
+        goal_area = goal_geom.area
+        coverage = intersection_area / goal_area
+        coverage = torch.tensor(coverage, requires_grad=True)
+        reward = torch.clip(coverage / self.success_threshold, 0, 1)
+        done = coverage > self.success_threshold
+
+        observation = self._get_obs()
+        observation_noise = self._get_obs_noise()
+        #info = self._get_info()
+
+        return observation, reward, done, observation_noise
 
     def render(self, mode):
         return self._render_frame(mode)
@@ -369,6 +408,13 @@ class PushTEnv(gym.Env):
         obs = np.array(
             tuple(self.agent.position) \
             + tuple(self.block.position) \
+            + (self.block.angle % (2 * np.pi),))
+        return obs
+
+    def _get_obs_noise(self):
+        obs = np.array(
+            tuple(self.agent.position) \
+            + tuple(self.block_noise.position) \
             + (self.block.angle % (2 * np.pi),))
         return obs
 
@@ -517,6 +563,7 @@ class PushTEnv(gym.Env):
         # Add agent, block, and goal zone.
         self.agent = self.add_circle((256, 400), 15)
         self.block = self.add_tee((256, 300), 0)
+        self.block_noise = self.add_tee((256, 300), 0) #Use this for state estimation
         #self.block = self.add_tee((self.x0,self.y0), 0)
         self.goal_color = pygame.Color('LightGreen')
         self.goal_pose = np.array([256,256,np.pi/4])  # x, y, theta (in radians)
