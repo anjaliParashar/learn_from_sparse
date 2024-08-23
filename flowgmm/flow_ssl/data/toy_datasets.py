@@ -69,6 +69,6 @@ def make_dataset_from_pkl(pkl_path):
     # dump information to that file
     f = pickle.load(file_i)
     file_i.close()
-    data = f['data'].astype(np.float32)
+    data = f['data']#.astype(np.float32)
     labels=f['labels'].astype(int)
     return data,labels

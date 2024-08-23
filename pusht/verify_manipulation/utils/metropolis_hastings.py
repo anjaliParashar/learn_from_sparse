@@ -7,6 +7,18 @@ from statsmodels.graphics.tsaplots import plot_acf
 import matplotlib.pyplot as plt
 import seaborn as sns
 import arviz as az
+import torch
+
+device = torch.device('cuda')
+
+#Need for the FlowGMM prior
+def get_means(n_classes, r):
+    phis = np.linspace(0, 2 * np.pi, n_classes+1)[:-1]
+    mean_x = np.cos(phis) * r
+    mean_y = np.sin(phis) * r
+    means = np.hstack([mean_x[:, None], mean_y[:, None]])
+    means = torch.from_numpy(means).float()
+    return means
 
 #Returns p(Z|X)
 def gaussian_posterior(X, Z): 
@@ -18,23 +30,44 @@ def gaussian_posterior(X, Z):
 #Returns Z^* given Z_t
 def gaussian_proposal(Z_curr):
     # proposal based on Gaussian
-    Z_new = st.multivariate_normal(mean=Z_curr, cov=100).rvs()
-    if Z_new[0]<100 or Z_new[1]<100 or Z_new[0]>500 or Z_new[1]>500:
-        Z_new = st.multivariate_normal(mean=Z_curr, cov=500).rvs()
+    Z_new = st.multivariate_normal(mean=Z_curr, cov=1).rvs()
+    """ if Z_new[0]<100:
+        Z_new[0] = 100
+    if Z_new[0]>500:
+        Z_new[0]=500
+
+    if Z_new[1]<100:
+        Z_new[1] = 100
+    if Z_new[1]>500:
+        Z_new[1]=500
+    """
+        #Z_new = st.multivariate_normal(mean=Z_curr, cov=50).rvs()
     return Z_new
 
 #Returns q(Z^*|Z_t). Assumes gaussian distribution for q(.)
 def gaussian_proposal_prob(x1, x2):
     # calculate proposal probability q(x2|x1), based on Gaussian
-    q = st.multivariate_normal(mean=x1, cov=500).pdf(x2)
+    q = st.multivariate_normal(mean=x1, cov=1).pdf(x2)
     return q
 
+def h(Z):
+    return torch.pow(torch.linalg.norm(Z-torch.tensor([2,0]).to(device)),2) - 4
+
+def projection(Z):
+    Z_grad = Z.requires_grad_()
+    h_grad = h(Z_grad)
+    grad_h = torch.autograd.grad(h_grad,Z_grad)[0].reshape(-1,1)
+    if h_grad>0 and Z_grad.T@grad_h>0:
+        Z =  Z-((grad_h@grad_h.T)/(torch.pow(torch.linalg.norm(grad_h),2)))@Z
+    return Z.cpu().detach().numpy()
+
 #Implements one iteration of Metropolis-Hastings 
-def mcmc_mh(X,Z_curr,func,proposal_func,proposal_func_prob): 
-    Z_new = proposal_func(Z_curr) #Returns Z^* given Z_t
-        
-    prob_curr = func(X, Z_curr) #Calculate likelihood of Z_t
-    prob_new = func(X, Z_new) #Calculate likelihood of Z^*
+def mcmc_mh(Z_curr,prob_curr,func, proposal_func, proposal_func_prob): 
+    Z_int = proposal_func(Z_curr) #Returns Z^* given Z_t
+    Z_new = projection(torch.tensor(Z_int).to(device))
+
+    #prob_curr = func(Z_curr) #Calculate likelihood of Z_t
+    prob_new,reward_new = func(Z_new) #Calculate likelihood of Z^*
     
     # we calculate the prob=exp(x) only when prob<1 so the exp(x) will not overflow for large x
     if prob_new > prob_curr:
@@ -51,9 +84,9 @@ def mcmc_mh(X,Z_curr,func,proposal_func,proposal_func_prob):
     else:
         Z_t_plus = Z_curr
         accept = 0
-    return Z_t_plus, accept
+    return Z_t_plus, accept,prob_new,reward_new
     
-        
+#Function to run n_iters iterations of mcmc_mh on a toy 1-D problem        
 def mcmc_mh_posterior_toy(X, Z_init, func, proposal_func, proposal_func_prob, n_iter=1000): #gaussian_posterior, gaussian_proposal, gaussian_proposal_prob,
     # Executes Metropolis-Hastings in a loop for n_iters
     Zs = []

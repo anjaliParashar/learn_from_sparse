@@ -117,6 +117,3 @@ def gpr_score():
     # dump information to that file
     pickle.dump(data, file)
     file.close()
-
-if __name__ == "__main__":
-    gpr_score()

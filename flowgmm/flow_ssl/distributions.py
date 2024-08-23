@@ -24,7 +24,10 @@ class SSLGaussMixture(torch.distributions.Distribution):
                           for mean, inv_std in zip(self.means, self.inv_cov_stds)]
         return gaussians
 
-
+    def log_prob_(self,z,gaussian_id):
+        g = self.gaussians[gaussian_id]
+        return g.log_prob(z)
+    
     def parameters(self):
        return [self.means, self.inv_cov_std, self.weights]
         
@@ -41,7 +44,7 @@ class SSLGaussMixture(torch.distributions.Distribution):
                 mask = np.where(idx == i)[0]
                 samples[mask] = all_samples[i][mask]
         return samples
-        
+    
     def log_prob(self, x, y=None, label_weight=1.):
         all_log_probs = torch.cat([g.log_prob(x)[:, None] for g in self.gaussians], dim=1)
         mixture_log_probs = torch.logsumexp(all_log_probs + torch.log(F.softmax(self.weights)), dim=1)

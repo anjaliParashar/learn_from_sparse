@@ -20,10 +20,7 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 import pickle
 
 device = torch.device('cuda')
-file = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/models/noise.pkl','rb')
-data = pickle.load(file)
-file.close()
-noisy_action_list = data['noise']
+
 # parameters
 pred_horizon = 16
 obs_horizon = 2
@@ -137,7 +134,6 @@ def generate_dist(x0,y0,seed,sigma_1,sigma_2):
     noisy_action = torch.randn(
                     (1, pred_horizon, action_dim), device=device)
     
-    noisy_action = noisy_action_list[0]
     start_time=time.time()
     with tqdm(total=max_steps, desc="Eval PushTStateEnv") as pbar:
         while not done:

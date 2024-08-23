@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/anjali/learn_from_sparse/flowgmm')
 from flow_ssl.flow_loss import FlowLoss
 from flow_ssl.realnvp import RealNVP,RealNVPw1x1,RealNVPw1x1ActNorm
 from flow_ssl.realnvp import RealNVPMNIST
