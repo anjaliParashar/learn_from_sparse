@@ -29,8 +29,8 @@ def generate_dataset(args):
     timer=0
   
     seed=10000 #Fix the seed
-    sigma_1range = np.linspace(0,1,10)
-    sigma_2range = np.linspace(0,1,10)
+    sigma_1range = np.linspace(0.01,1,5)
+    sigma_2range = np.linspace(0.01,1,5)
     score_ = np.zeros((I_n,len(sigma_1range),len(sigma_2range)))
     seed_list =[]
     
@@ -43,7 +43,7 @@ def generate_dataset(args):
                 #Initialize 1 random seed for policy evaluation  
                 score = generate_dist(i,j,seed, sigma_1,sigma_2)
                 score_[i_idx,sm1,sm2] = score
-                seed_i+=1
+
                 print(timer)
                 seed0 = np.array([i,j])
                 seed_list.append(seed0)
@@ -54,7 +54,7 @@ def generate_dataset(args):
 
                     
     data = {'seed':seed_list,'score':score_}
-    filename='/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/I_30_seeds_3/pusht_4'+str(M)+'.pkl'
+    filename='/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/I_30_seeds_3_new/pusht_4'+str(M)+'.pkl'
     file = open(filename, 'wb')
 
     # dump information to that file
