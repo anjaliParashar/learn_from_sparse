@@ -11,7 +11,7 @@ plot=True
 score_list = []
 seed_list = []
 for i in range(30):
-    file_i = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/I_30_seeds_3_new/pusht_4'+str(i)+'.pkl', 'rb')
+    file_i = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/I_30_seeds_3_delete_3/pusht_4'+str(i)+'.pkl', 'rb')
     # load information from file
     data_i = pickle.load(file_i)
     file_i.close()
@@ -54,7 +54,7 @@ for i in range(score_np.shape[1]): #X
         #    score_1.append(score_np[j,i,0,0])
         #    seed1.append([X[i],Y[j]])
         #    label_1.append(0)
-        if score_np[j,i,0,0]>=0.7 and var_sigma1<0.1 and var_sigma2<0.1: #Fail with certainity
+        if (score_np[j,i,1:5,1:5]>=0.3).all():#score_np[j,i,0,0]>=0.7 and var_sigma1<0.1 and var_sigma2<0.1: #Fail with certainity
             score_2.append(score_np[j,i,0,0])
             seed2.append([X[i],Y[j]])
             label_2.append(1)
@@ -63,13 +63,20 @@ for i in range(score_np.shape[1]): #X
             seed1.append([X[i],Y[j]])
             label_1.append(0)
         
-        if score_np[j,i,0,0]<0.3 and var_sigma1<0.1 and var_sigma2<0.1: #Pass with certainity
+        if (score_np[j,i,1:5,1:5]<=0.3).all():#score_np[j,i,0,0]<0.3 and var_sigma1<0.1 and var_sigma2<0.1: #Pass with certainity
             score_3.append(score_np[j,i,0,0])
             seed3.append([X[i],Y[j]])
             label_3.append(2)
         
         if score_np[j,i,0,0]>=0.7:
             fail.append([X[i],Y[j]])
+seed2np = np.array(seed2)
+seed1np = np.array(seed1)
+seed3np = np.array(seed3)
+
+plt.scatter(seed2np[:,0],seed2np[:,1],label='seed2')
+plt.scatter(seed1np[:,0],seed1np[:,1],label='seed1')
+plt.legend()
 
 data = seed1[::10]+seed2#+seed3
 labels=label_1[::10]+label_2#+label_3
@@ -79,8 +86,8 @@ file = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/pusht
 pickle.dump(data,file)
 file.close()
 
-#data_gpr={'seed':np.array(seed2),'risk':np.array(score_2)}
-data_gpr={'seed':np.array(seed2+seed1[::50]),'risk':np.array(score_2+score_1[::50])}
+data_gpr={'seed':np.array(seed2+seed1),'risk':np.array(score_2+seed1)}
+#data_gpr={'seed':np.array(seed2+seed1[::50]),'risk':np.array(score_2+score_1[::50])}
 file = open('/home/anjali/learn_from_sparse/pusht/verify_manipulation/data/gpr/sim/pusht_gpr_train.pkl','wb')
 pickle.dump(data_gpr,file)
 file.close()

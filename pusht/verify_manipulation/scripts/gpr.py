@@ -29,8 +29,8 @@ data_sim = pickle.load(file_sim)
 file_sim.close()
 
 #Combine datasets from both sources
-obs_full = np.vstack((np.array(data_sim['seed']),obs_np))
-reward_full = np.vstack((np.array(data_sim['risk']).reshape((-1,1)),reward_np))
+obs_full = np.vstack((np.array(data_sim['seed'][0:134]),obs_np))
+reward_full = np.vstack((np.array(data_sim['risk'][0:134]).reshape((-1,1)),reward_np))
 obs_full = obs_full/500
 print('sim:',len(np.array(data_sim['seed'])))
 print("obs_full:",obs_full.shape)
@@ -75,7 +75,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model).to(device)
 
 # Set the number of training iterations
-n_iter = 300
+n_iter = 200
 weight=0.3
 N_Sim = len(np.array(data_sim['seed']))
 for i in range(n_iter):
@@ -161,3 +161,36 @@ with torch.no_grad(), gpytorch.settings.fast_pred_var():
     ax.legend(['Observed Data', 'Mean', 'Confidence'])
     """
 plt.show()
+
+# Sample from the region
+import sys
+sys.path.append('/home/anjali/learn_from_sparse')
+import numpy as np
+from pusht.verify_manipulation.utils.metropolis_hastings import gaussian_proposal,gaussian_proposal_prob,mcmc_mh,get_means
+from flowgmm.flow_ssl.realnvp.realnvp import RealNVPTabular
+from flowgmm.flow_ssl.distributions import SSLGaussMixture
+from flowgmm.flow_ssl import FlowLoss
+
+#import data from Normalizing flows to prepare prior
+flow = RealNVPTabular(num_coupling_layers=20, in_dim=2, num_layers=1, hidden_dim=32)
+PATH = "/home/anjali/learn_from_sparse/flowgmm/experiments/synthetic_data/pusht_noise.pt"
+checkpoint = torch.load(PATH)
+flow.load_state_dict(checkpoint['model_state_dict'])
+flow.eval()
+
+r = 2
+n_classes = 2
+means = get_means(n_classes,r)
+prior = SSLGaussMixture(means=means)
+loss_fn = FlowLoss(prior)
+
+zs = []
+for i in range(len(means)):
+    z = loss_fn.prior.sample((1000,), gaussian_id=i).numpy()
+    zs.append(z)
+#   plt.scatter(z[:, 0], z[:, 1], cmap=plt.cm.rainbow)
+#
+#Gaussian sampling
+for z in zs:
+    x = flow.inverse(torch.from_numpy(z).float()).detach().numpy()
+    print(x)
