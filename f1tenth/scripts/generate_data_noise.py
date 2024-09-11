@@ -17,7 +17,7 @@ noise_pred_net = noise_pred_net.cuda()"""
 
 def generate_dataset(args):
     v_min = 0.5
-    v_max = 4.5
+    v_max = 6.5
     v_n = 30
 
     curv_min = 0.5
@@ -35,6 +35,11 @@ def generate_dataset(args):
     sigma_1range = np.logspace(-4,0,5)
     sigma_2range = np.logspace(-5,-3,5)
     risk_ = np.zeros((curv_n,len(sigma_1range),len(sigma_2range)))
+    max_risk_ = np.zeros((curv_n,len(sigma_1range),len(sigma_2range)))
+    mean_risk_ = np.zeros((curv_n,len(sigma_1range),len(sigma_2range)))
+    final_risk_ = np.zeros((curv_n,len(sigma_1range),len(sigma_2range)))
+    #traj_actual = np.zeros((curv_n,len(sigma_1range),len(sigma_2range),2000,2))
+    #traj_ref = np.zeros((curv_n,len(sigma_1range),len(sigma_2range),2))
     seed_list =[]
     
     i_idx=0
@@ -44,8 +49,12 @@ def generate_dataset(args):
             sm2=0
             for sigma_2 in sigma_2range:
                 #Initialize 1 random seed for policy evaluation  
-                risk = generate_dist(sigma_1,sigma_2,speed,curv)
+                #risk = generate_dist(sigma_1,sigma_2,speed,curv)
+                risk, mean_risk,max_risk, final_risk, x,y,cx,cy = generate_dist(sigma_1,sigma_2,speed,curv)
                 risk_[i_idx,sm1,sm2] = risk
+                mean_risk_[i_idx,sm1,sm2] = mean_risk
+                max_risk_[i_idx,sm1,sm2] = max_risk
+                final_risk_[i_idx,sm1,sm2] = final_risk
                 print(timer)
                 seed0 = np.array([curv,speed])
                 seed_list.append(seed0)
@@ -55,7 +64,7 @@ def generate_dataset(args):
         i_idx+=1
 
                     
-    data = {'seed':seed_list,'risk':risk_}
+    data = {'seed':seed_list,'risk':risk_,'max_risk':max_risk_,'mean_risk':mean_risk_,'final_risk':final_risk_}
     filename='/home/anjali/learn_from_sparse/f1tenth/data/speed_30_sigma_5/f1tenth'+str(M)+'.pkl'
     file = open(filename, 'wb')
 

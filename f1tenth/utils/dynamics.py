@@ -9,8 +9,8 @@ class Toy():
         self.yaw = yaw
         self.v = v
         self.L = L
-        self.max_steer = np.deg2rad(np.array(25.0)) #Max steering angle
-        self.max_a = np.array(5) #Max acceleration
+        self.max_steer = np.deg2rad(np.array(50.0)) #Max steering angle
+        self.max_a = np.array(2) #Max acceleration
 
         self.dt = np.array(0.1)
         self.noise1 = noise1
@@ -52,7 +52,9 @@ class Toy():
         if a <= - max_a:
             a = - max_a
         control = np.vstack((delta,a))
-        f_ = self.f(state,control) + np.array(self.noise1.sample()).reshape(-1,1)
+        f_ = self.f(state,control)
+        if self.noise1 is not None:
+            f_+= np.array(self.noise1.sample()).reshape(-1,1)
         state.x = state.x + dt*f_[0,:] #+ np.array(self.noise2.sample()[0])
         state.y = state.y + dt*f_[1,:] #+ np.array(self.noise2.sample()[1])
         state.yaw = state.yaw + dt*f_[2,:] #+ np.array(self.noise2.sample()[2])

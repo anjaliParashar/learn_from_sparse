@@ -1,6 +1,8 @@
+import sys
+sys.path.append('/home/anjali/learn_from_sparse')
 import torch
 import numpy as np
-import cubic_spline 
+import f1tenth.utils.cubic_spline as cubic_spline
 import matplotlib.pyplot as plt
 class Ref_Curve_Spline():
     def __init__(self,ax=[0.0, 6.0, 12.5, 10.0, 17.5, 20.0, 25.0],ay=[0.0, -3.0, -5.0, 6.5, 3.0, 0.0, 0.0]):
