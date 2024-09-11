@@ -238,7 +238,7 @@ def data_collect(N,N_Sim,visualize=True):
     mean_full = np.vstack((np.array(data_sim['mean'][0:N_Sim:1]).reshape((-1,1)),mean_np))
     max_full = np.vstack((np.array(data_sim['max'][0:N_Sim:1]).reshape((-1,1)),max_np))
     final_full = np.vstack((np.array(data_sim['final'][0:N_Sim:1]).reshape((-1,1)),final_np))
-    risk_full = (torch.sigmoid(torch.tensor(risk_full-12.5) / 2))
+    risk_full = (torch.sigmoid(torch.tensor(risk_full-11.5) / 3.4))
     risk_full = torch.tensor(risk_full)
     mean_full = (torch.sigmoid(torch.tensor(mean_full-0.4)*5))
     max_full = (torch.sigmoid(torch.tensor(max_full-0.4)*5))
@@ -294,19 +294,19 @@ def train(obs,reward,N_Sim):
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model).to(device)
 
     # Set the number of training iterations
-    n_iter = 1000
+    n_iter = 200
     lr_ = 0.001
-    weight=0.8
+    weight=0.4
     for i in range(n_iter):
         # Set the gradients from previous iteration to zero
         optimizer.zero_grad()
         # Output from model
         output = model(x_train)
         # Compute loss and backprop gradients
-        #loss_sim = -mll(output[0:N_Sim], y_train[0:N_Sim])
-        #loss_exp = -mll(output[N_Sim:], y_train[N_Sim:])
-        #loss = (1-weight)*loss_sim + weight*loss_exp
-        loss = -mll(output, y_train)
+        loss_sim = -mll(output[0:N_Sim], y_train[0:N_Sim])
+        loss_exp = -mll(output[N_Sim:], y_train[N_Sim:])
+        loss = (1-weight)*loss_sim + weight*loss_exp
+        # loss = -mll(output, y_train)
         loss.backward()
         #weight+= (loss_sim - loss_exp).detach().cpu()*lr_
         print('Iter %d/%d - Loss: %.3f' % (i + 1, n_iter, loss.item()))
@@ -330,7 +330,7 @@ def eval(x_test,y_test,model,likelihood):
     x_test[:,1] = (x_test[:,1]-0.5)/6.0
     x_test[:,0] = (x_test[:,0]-0.5)/4.0
  
-    y_test = np.array(torch.sigmoid(torch.tensor(y_test-12.5)/2))
+    y_test = np.array(torch.sigmoid(torch.tensor(y_test-11.5)/3.4))
     #breakpoint()
     observed_pred = likelihood(model(torch.tensor(x_test).to(device).float()))
     lower, upper = observed_pred.confidence_region()
@@ -513,7 +513,7 @@ def main():
     weight=0.9
     Z_init,risk_init,_,_,_ = generate_exp_data(N)
     print("Initial seeds",Z_init)
-    x_test,y_test = generate_test_data(N=18)
+    # x_test,y_test = generate_test_data(N=21)
     #breakpoint()
     for i in range(1):#range(N_final-N):
         #Zip data from sim+exp for training GPR
@@ -522,7 +522,7 @@ def main():
 
         #Visualize the predicted risk
         Z_new = visualize_gpr(Z_init,risk_init,model1,likelihood1) #Interweaved optimization of the weight
-        x_test,y_test = generate_test_data(N=18)
+        x_test,y_test = generate_test_data(N=20)
         error_sq = eval(x_test,y_test,model1,likelihood1)
         breakpoint()
         #Get index corresponding to the largest score in Z_init, sample from the corresponding cluster
